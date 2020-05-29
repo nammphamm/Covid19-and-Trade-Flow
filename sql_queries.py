@@ -9,7 +9,7 @@ country_table_create = ("""
     CREATE TABLE IF NOT EXISTS countries
     (country_id text PRIMARY KEY,
     country_name text,
-    country_group text,
+    region text,
     GDP_2017 FLOAT,
     GDP_per_Capita_2017 FLOAT,
     Population_2017 FLOAT,
@@ -41,8 +41,20 @@ trade_table_create = ("""
     PRIMARY KEY (country_from, country_to, classification_code, trade_time, import_export_code)
     )""")
 
+cases_table_create = ("""
+    CREATE TABLE IF NOT EXISTS cases
+    (country_id text NOT NULL REFERENCES countries(country_id),
+    period date NOT NULL,
+    confirmed INT,
+    deaths INT,
+    recovered INT,
+    active INT,
+    PRIMARY KEY (country_id, period)
+    )
+    """)
+
 create_table_queries = [country_table_create, classification_table_create,
-                        import_export_table_create, trade_table_create]
+                        import_export_table_create, trade_table_create, cases_table_create]
 
 # INSERT TABLES
 insert_import_export = ("""
@@ -73,6 +85,11 @@ insert_trades = ("""
     ON CONFLICT (country_from, country_to, classification_code, trade_time, import_export_code) DO NOTHING;
 """)
 
+insert_cases = ("""
+    INSERT INTO cases
+    (country_id, period, confirmed, deaths, recovered, active)
+    VALUES (%s, %s, %s, %s, %s, %s)
+""")
 
 
 
