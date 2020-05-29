@@ -9,9 +9,8 @@ Collect data from multiple resources and join together
 
 ## Facts Tables
 - Trades (import and export)
-- TODO: Covid-19 total cases by countries
-    - Scrape from https://github.com/CSSEGISandData/COVID-19/blob/master/csse_covid_19_data/csse_covid_19_daily_reports/
-
+- Covid-19 total cases by countries
+   
 # ETL Process
 
 # Example use
