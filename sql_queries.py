@@ -1,8 +1,8 @@
 # DROP TABLES
 drop_table_queries = []
-for table in ['countries', 'classifications', 'trades', 'import_export_codes']:
+for table in ['countries', 'classifications', 'trades', 'import_export_codes','cases']:
     drop_table_queries.append("""
-    DROP TABLE IF EXISTS import_export_codes""".format(table))
+    DROP TABLE IF EXISTS {}""".format(table))
 
 # CREATE TABLES
 country_table_create = ("""
