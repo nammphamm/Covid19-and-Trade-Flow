@@ -13,8 +13,12 @@ Collect data from multiple resources and join together
    
 # ETL Process
 
-# Example use
+Load data for certain countries to the database
+```
+python etl.py -countries China,USA,Canada,Switzerland -year 2020
+```
 
+# Analysis
 ## 1. Track covid cases of countries over time
 
 ```
