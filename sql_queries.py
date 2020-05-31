@@ -73,7 +73,7 @@ insert_countries = ("""
 
 insert_classification_codes = ("""
     INSERT INTO classifications
-    (classification_id, parent, classification_description)
+    (classification_id, classification_description, parent)
     VALUES (%s, %s, %s)
     ON CONFLICT (classification_id) DO NOTHING;
 """)
@@ -89,6 +89,7 @@ insert_cases = ("""
     INSERT INTO cases
     (country_id, period, confirmed, deaths, recovered, active)
     VALUES (%s, %s, %s, %s, %s, %s)
+    ON CONFLICT (country_id, period) DO NOTHING;
 """)
 
 

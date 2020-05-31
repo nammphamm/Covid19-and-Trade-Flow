@@ -10,6 +10,16 @@ import datetime
 
 from sql_queries import *
 
+import argparse
+
+
+def _parse_arguments():
+    parser = argparse.ArgumentParser(description="Run trade data for specific country")
+    parser.add_argument("-countries", "--list", type=str, dest='list', required=True, help="The country name to be run")
+    parser.add_argument("-year", type=str, required=True, help="year of data to be loaded")
+    parser.add_argument("-month", type=str, required=False, help="month of data, if not supplied, then all months")
+    return parser.parse_args()
+
 
 def process_dimension_tables(cur, filepath, query, table_name):
     def process_countries_tables(indicator_path, countries_path, countries_table):
@@ -45,7 +55,7 @@ def process_dimension_tables(cur, filepath, query, table_name):
     print("Processed {}".format(table_name))
 
 
-def process_trade_table(cur, country_dict, country_name, year):
+def process_trade_table(cur, country_dict, country_name, year, month=None):
     """
     Process monthly data for selected country
     :param cur: cursor for SQL database
@@ -57,9 +67,12 @@ def process_trade_table(cur, country_dict, country_name, year):
     time.sleep(8)  # selected number of seconds to wait to make API robust
     country_code = country_dict[country_name]
 
+    if not month:
+        month = ",".join(["01", "02", "03", "04", "05", "06", "07", "08", "09", "10"])
+
     # get data as a json from API call and transform to pandas
-    url = 'https://comtrade.un.org/api/get?type=C&freq=M&px=HS&ps={year}&r={country}&p=0&rg=all&cc=01,02,03,04,05,06,07,08,09,10'.format(
-        year=year, country=country_code)
+    url = 'https://comtrade.un.org/api/get?type=C&freq=M&px=HS&ps={year}&r={country}&p=0&rg=all&cc={month}'.format(
+        year=year, country=country_code, month=month)
     un_data = requests.get(url)
     json = un_data.json()
     df = json_normalize(json['dataset'])
@@ -84,7 +97,7 @@ def process_covid_cases(cur, month, country_lookup_dict):
             "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_daily_reports/{}.csv".format(date_string.strftime("%m-%d-%Y")),
             sep=',')
     except:
-        print ("Data not available for {}".format(date_string))
+        print("Covid data for all countries not available for {}".format(date_string))
         return
 
     # preprocess downloaded covid data
@@ -110,27 +123,31 @@ def process_covid_cases(cur, month, country_lookup_dict):
 
 
 def main():
+    args = _parse_arguments()
+    countries = [item for item in args.list.split(",")]
+
     conn = psycopg2.connect("host=127.0.0.1 dbname=comtrade")
     conn.set_session(autocommit=True)
     cur = conn.cursor()
-    # process_dimension_tables(cur, 'https://comtrade.un.org/Data/cache/tradeRegimes.json',
-    #                          insert_import_export, "import_export")
-    # process_dimension_tables(cur, 'https://comtrade.un.org/Data/cache/partnerAreas.json',
-    #                          insert_countries, "countries")
+    process_dimension_tables(cur, 'https://comtrade.un.org/Data/cache/tradeRegimes.json',
+                             insert_import_export, "import_export")
+    process_dimension_tables(cur, 'https://comtrade.un.org/Data/cache/partnerAreas.json',
+                             insert_countries, "countries")
     process_dimension_tables(cur, 'https://comtrade.un.org/Data/cache/classificationHS.json',
                              insert_classification_codes, "classifications")
-    # #create lookup dict for country code
-    # country_df = pd.read_sql("""SELECT country_id, country_name
-    #                             FROM countries """, conn)
-    # country_lookup_dict = dict(zip(country_df['country_name'], country_df['country_id']))
-    #
-    # # process trades data for some countries
-    # for country in ['China', 'USA', 'Canada', 'Switzerland', 'Italy', 'Australia']:
-    #     process_trade_table(cur, country_name_lookup_dict, country, 2020)
-    #
-    # # process covid cases for all countries
-    # for month in range(1, 13):
-    #     process_covid_cases(cur, month, country_lookup_dict)
+
+    #create lookup dict for country code
+    country_df = pd.read_sql("""SELECT country_id, country_name
+                                FROM countries """, conn)
+    country_lookup_dict = dict(zip(country_df['country_name'], country_df['country_id']))
+
+    # process covid cases for all countries
+    for month in range(1, 13):
+        process_covid_cases(cur, month, country_lookup_dict)
+
+    # process trades data for some countries
+    for country in countries:
+        process_trade_table(cur, country_lookup_dict, country, args.year, args.month)
 
     conn.close()
 
