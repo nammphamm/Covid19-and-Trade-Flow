@@ -57,6 +57,13 @@ def process_trade_table(cur, country_dict, country_name, year, month=None):
 
 
 def process_covid_cases(cur, month, country_lookup_dict):
+    """
+    Process covid cases for all countries
+    :param cur: cursor
+    :param month: month
+    :param country_lookup_dict: country name lookup dictionary
+    :return:
+    """
     date_string = datetime.date(2020, month, 1) + MonthEnd(1)
     try:
         df = pd.read_csv(
