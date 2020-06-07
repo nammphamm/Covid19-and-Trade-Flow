@@ -22,6 +22,14 @@ def _parse_arguments():
 
 
 def process_dimension_tables(cur, filepath, query, table_name):
+    """
+    Process dimension tables (countries, classifications)
+    :param cur: cursor
+    :param filepath: file path of reference files
+    :param query: query to be executed
+    :param table_name: table to be updated
+    :return: None
+    """
     def process_countries_tables(indicator_path, countries_path, countries_table):
         indicators = pd.read_excel(indicator_path)
         indicators = indicators.drop(['Country Name', 'Time', 'Time Code'], axis=1)
