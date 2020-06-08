@@ -12,6 +12,7 @@ from sql_queries import *
 
 import argparse
 from configparser import ConfigParser
+import progress
 
 
 def _parse_arguments():
@@ -111,6 +112,8 @@ def process_covid_cases(cur, month, country_lookup_dict):
     for i, row in df.iterrows():
         cur.execute(insert_cases, list(row))
     print("Processed monthly covid data for all countries during time period {}".format(date_string))
+    print("Update progress file")
+    progress.LAST_UPDATED = month
 
 
 def main():
@@ -129,7 +132,8 @@ def main():
     country_lookup_dict = dict(zip(country_df['country_name'], country_df['country_id']))
 
     # process covid cases for all countries
-    for month in range(1, 13):
+    print("Checking for covid data. Last updated date: {}".format(datetime.date(2020, progress.LAST_UPDATED, 1) + MonthEnd(1)))
+    for month in range(progress.LAST_UPDATED + 1, 13):
         process_covid_cases(cur, month, country_lookup_dict)
 
     # process trades data for some countries
