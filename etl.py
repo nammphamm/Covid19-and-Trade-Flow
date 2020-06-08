@@ -11,34 +11,45 @@ import datetime
 from sql_queries import *
 
 import argparse
+from configparser import ConfigParser
 
 
 def _parse_arguments():
     parser = argparse.ArgumentParser(description="Run trade data for specific country")
     parser.add_argument("-countries", "--list", type=str, dest='list', required=True, help="The country name to be run")
-    parser.add_argument("-year", type=str, required=True, help="year of data to be loaded")
+    parser.add_argument("-year", type=str, required=False, help="year of data to be loaded")
     parser.add_argument("-month", type=str, required=False, help="month of data, if not supplied, then all months")
     return parser.parse_args()
 
 
-def process_trade_table(cur, country_dict, country_name, year, month=None):
+def process_trade_table(cur, country_dict, country_name, year, month=None, cc=None):
     """
     Process monthly data for selected country
     :param cur: cursor for SQL database
     :param country_dict: dictionary to look up country code for API call
     :param country_name: name of country
     :param year: year for the monthly dataset
+    :param month
+    :param cc: classification codes
     :return:
     """
     time.sleep(8)  # selected number of seconds to wait to make API robust
-    country_code = country_dict[country_name]
+    try:
+        country_code = country_dict[country_name]
+    except:
+        print("Country {} is an invalid argument".format(country_name))
+        return
 
-    if not month:
-        month = ",".join(["01", "02", "03", "04", "05", "06", "07", "08", "09", "10"])
+    if not cc:
+        # if no classification is defined, pull all the codes for 2 digit AG2
+        cc = "AG2"
+    if not year:
+        #need to loop
+        year = "2019,2020"
 
     # get data as a json from API call and transform to pandas
-    url = 'https://comtrade.un.org/api/get?type=C&freq=M&px=HS&ps={year}&r={country}&p=0&rg=all&cc={month}'.format(
-        year=year, country=country_code, month=month)
+    url = 'https://comtrade.un.org/api/get?type=C&freq=M&px=HS&ps={year}&r={country}&p=0&rg=all&cc={cc}'.format(
+        year=year, country=country_code, cc=cc)
     un_data = requests.get(url)
     json = un_data.json()
     df = json_normalize(json['dataset'])
@@ -97,9 +108,11 @@ def process_covid_cases(cur, month, country_lookup_dict):
 
 def main():
     args = _parse_arguments()
+    config = ConfigParser()
+    config.read("config.ini")
     countries = [item for item in args.list.split(",")]
 
-    conn = psycopg2.connect("host=127.0.0.1 dbname=comtrade")
+    conn = psycopg2.connect(host=config.get('local', 'host'), dbname="comtrade")
     conn.set_session(autocommit=True)
     cur = conn.cursor()
 

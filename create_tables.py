@@ -3,17 +3,19 @@ import psycopg2
 from sql_queries import *
 import pandas as pd
 from pandas.io.json import json_normalize
+import numpy as np
+from configparser import ConfigParser
 
 
-def create_database():
+def create_database(config):
     """
     Create database and return new connection string
     :return:
     """
     # connect to default database
-    conn = psycopg2.connect("host=127.0.0.1 dbname=postgres")
-    conn.set_session(autocommit=True)
+    conn = psycopg2.connect(host=config.get('local', 'host'), dbname="postgres")
     cur = conn.cursor()
+    conn.set_session(autocommit=True)
 
     # create database with UTF8 encoding
     cur.execute("DROP DATABASE IF EXISTS comtrade")
@@ -24,7 +26,7 @@ def create_database():
     conn.close()
 
     # connect to database just created
-    conn = psycopg2.connect("host=127.0.0.1 dbname=comtrade")
+    conn = psycopg2.connect(host=config.get('local', 'host'), dbname="comtrade")
     cur = conn.cursor()
 
     return cur, conn
@@ -90,9 +92,11 @@ def process_dimension_tables(cur, filepath, query, table_name):
 
 
 def main():
-    cur, conn = create_database()
-
-    # drop_tables(cur, conn)
+    config = ConfigParser()
+    config.read("config.ini")
+    cur, conn = create_database(config)
+    conn.set_session(autocommit=True)
+    drop_tables(cur, conn)
     create_tables(cur, conn)
 
     process_dimension_tables(cur, 'https://comtrade.un.org/Data/cache/tradeRegimes.json',
