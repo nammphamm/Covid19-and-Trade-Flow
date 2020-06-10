@@ -12,6 +12,7 @@ from sql_queries import *
 
 import argparse
 from configparser import ConfigParser
+import progress
 
 
 def _parse_arguments():
@@ -34,7 +35,28 @@ def process_trade_table(cur, country_dict, country_name, year, month=None, cc=No
     :param cc: classification codes
     :return:
     """
-    time.sleep(8)  # selected number of seconds to wait to make API robust
+    def api_call(year, country_code, cc):
+        # wait for time between api calls
+        time.sleep(8)
+        # get data as a json from API call and transform to pandas
+        url = 'https://comtrade.un.org/api/get?type=C&freq=M&px=HS&ps={year}&r={country}&p=0&rg=all&cc={cc}'.format(
+            year=year, country=country_code, cc=cc)
+        un_data = requests.get(url)
+        json = un_data.json()
+        df = json_normalize(json['dataset'])
+
+        # process data and move to Postgres database
+        if df.empty:
+            print("Monthly data not available for {country} during time period {p}".format(country=country_name, p=year))
+        else:
+            df = df[['rtCode', 'ptCode', 'cmdCode', 'period', 'rgDesc', 'TradeQuantity', 'TradeValue']]
+            df['period'] = pd.to_datetime(df['period'], format="%Y%m") + MonthEnd(1)
+            df['TradeQuantity'] = df['TradeQuantity'].fillna(0)
+            df['TradeValue'] = df['TradeValue'].fillna(0)
+            for i, row in df.iterrows():
+                cur.execute(insert_trades, list(row))
+        print("Processed monthly trades data for {country} during time period {p}".format(country=country_name, p=year))
+
     try:
         country_code = country_dict[country_name]
     except:
@@ -45,27 +67,13 @@ def process_trade_table(cur, country_dict, country_name, year, month=None, cc=No
         # if no classification is defined, pull all the codes for 2 digit AG2
         cc = "AG2"
     if not year:
-        #need to loop
-        year = "2019,2020"
-
-    # get data as a json from API call and transform to pandas
-    url = 'https://comtrade.un.org/api/get?type=C&freq=M&px=HS&ps={year}&r={country}&p=0&rg=all&cc={cc}'.format(
-        year=year, country=country_code, cc=cc)
-    un_data = requests.get(url)
-    json = un_data.json()
-    df = json_normalize(json['dataset'])
-
-    # process data and move to Postgres database
-    if df.empty:
-        print("Monthly data not available for {country} during time period {p}".format(country=country_name, p=year))
+        #need to loop between 2019 and 2020
+        years = [2019,2020]
     else:
-        df = df[['rtCode', 'ptCode', 'cmdCode', 'period', 'rgDesc', 'TradeQuantity', 'TradeValue']]
-        df['period'] = pd.to_datetime(df['period'], format="%Y%m") + MonthEnd(1)
-        df['TradeQuantity'] = df['TradeQuantity'].fillna(0)
-        df['TradeValue'] = df['TradeValue'].fillna(0)
-        for i, row in df.iterrows():
-            cur.execute(insert_trades, list(row))
-        print("Processed monthly trades data for {country} during time period {p}".format(country=country_name, p=year))
+        years = [year]
+
+    for y in years:
+        api_call(y, country_code, cc)
 
 
 def process_covid_cases(cur, month, country_lookup_dict):
@@ -105,6 +113,8 @@ def process_covid_cases(cur, month, country_lookup_dict):
     for i, row in df.iterrows():
         cur.execute(insert_cases, list(row))
     print("Processed monthly covid data for all countries during time period {}".format(date_string))
+    print("Update progress file")
+    progress.LAST_UPDATED = month
 
 
 def main():
@@ -123,7 +133,8 @@ def main():
     country_lookup_dict = dict(zip(country_df['country_name'], country_df['country_id']))
 
     # process covid cases for all countries
-    for month in range(1, 13):
+    print("Checking for covid data. Last updated date: {}".format(datetime.date(2020, progress.LAST_UPDATED, 1) + MonthEnd(1)))
+    for month in range(progress.LAST_UPDATED + 1, 13):
         process_covid_cases(cur, month, country_lookup_dict)
 
     # process trades data for some countries
