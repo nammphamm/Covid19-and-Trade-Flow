@@ -18,6 +18,7 @@ def _parse_arguments():
     parser = argparse.ArgumentParser(description="Run trade data for specific country")
     parser.add_argument("-countries", "--list", type=str, dest='list', required=True, help="The country name to be run")
     parser.add_argument("-year", type=str, required=False, help="year of data to be loaded")
+    parser.add_argument("-codes", "--list", type=str, dest='list', required=True, help="The list of cc codes")
     parser.add_argument("-month", type=str, required=False, help="month of data, if not supplied, then all months")
     return parser.parse_args()
 
