@@ -36,8 +36,8 @@ trade_table_create = ("""
     classification_code text NOT NULL REFERENCES classifications(classification_id),
     trade_time date NOT NULL ,
     import_export_code text NOT NULL,
-    trade_weight DECIMAL(12,2),
-    trade_value DECIMAL(12,2),
+    trade_weight DECIMAL(10,2),
+    trade_value DECIMAL(25),
     PRIMARY KEY (country_from, country_to, classification_code, trade_time, import_export_code)
     )""")
 
