@@ -1,5 +1,5 @@
 # Covid data, last month to update
-LAST_UPDATED = 5
+LAST_UPDATED = 1
 
 # Trade dataCountries
-COUNTRIES_TO_UPDATE = []
+COUNTRIES_TO_UPDATE = ["China", "USA", "Canada"]

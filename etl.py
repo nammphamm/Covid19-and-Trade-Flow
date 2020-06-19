@@ -19,7 +19,7 @@ def _parse_arguments():
     parser = argparse.ArgumentParser(description="Run trade data for specific country")
     parser.add_argument("-countries", "--list", type=str, dest='list', required=True, help="The country name to be run")
     parser.add_argument("-year", type=str, required=False, help="year of data to be loaded")
-    parser.add_argument("-codes", "--list", type=str, dest='list', required=True, help="The list of cc codes")
+    #parser.add_argument("-codes", "--list", type=str, dest='list', required=False, help="The list of cc codes")
     parser.add_argument("-month", type=str, required=False, help="month of data, if not supplied, then all months")
     return parser.parse_args()
 
@@ -98,7 +98,14 @@ def process_covid_cases(cur, month, country_lookup_dict):
         df = df.rename({"Country/Region": "Country_Region"}, axis=1)
     if "Active" not in list(df):
         df["Active"] = df["Confirmed"] - df["Deaths"] - df["Recovered"]
-    countries_dict = {"UK": "United Kingdom", "US": "USA", "Mainland China": "China"}
+    # manually change some country name since they don't follow same format
+    countries_dict = {"UK": "United Kingdom",
+                      "US": "USA",
+                      "Mainland China": "China",
+                      "Korea, South": "Rep. of Korea",
+                      "Russia": "Russian Federation",
+                      "Vietnam": "Viet Nam"}
+
     df["Country_Region"] = np.where(df["Country_Region"].isin(countries_dict), df["Country_Region"].map(countries_dict),
                                     df["Country_Region"])
     df['period'] = date_string
