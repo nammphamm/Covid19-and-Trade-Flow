@@ -82,6 +82,7 @@ def process_dimension_tables(cur, filepath, query, table_name):
     if table_name == "classifications":
         # only include the summary group
         df[df.parent.isin(['TOTAL', "#"])]
+        df = df[['id', 'text', 'parent']]
     elif table_name == 'countries':
         df = process_countries_tables("reference_data/Population and GDP by Country.xlsx",
                                       "reference_data/Comtrade Country Code and ISO list.xlsx",
